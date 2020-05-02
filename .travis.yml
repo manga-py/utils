@@ -1,0 +1,45 @@
+addons:
+  artifacts: true
+
+language: python
+
+dist: bionic
+
+python: "3.6"
+
+cache: pip
+
+before_install:
+  - sudo apt-get update
+  - apt-cache search libssl
+  - sudo apt-get -y install openssl nodejs python-setuptools libwebp-dev
+  - sudo apt install -y -f --fix-missing
+
+install:
+  - pip install --upgrade setuptools pyinstaller mypy
+  - pip install -r requirements_dev.txt
+
+script:
+  - mypy manga_py
+  - python run_tests.py
+
+before_deploy:
+  - python build_setup.py
+  - find . -name *.pyc 2>/dev/null | xargs rm -f
+  - find . -name __pycache__ 2>/dev/null | xargs rm -rf
+  - zip -r -q "manga_py_urils_${TRAVIS_TAG}.zip" manga_py
+
+deploy:
+  - provider: pypi
+    user: __token__
+    password:
+      secure: "BzfBI9QTdMXFb4tevvTKxJWdanJ15GOamwy6rPxqpDkvI2rGQ1xM3TWPz10foN32DDFgOgzXloOAV9P3dhc7OTk4k/W5Y3OiexrvWrTcuo2zqsVeIxn4jUm9rdWwVnxgCtx7pF7Rulbn/ALZp/suLS/ukGXHQzoAzyewvuCZzr5rC7TRmqnPCNUK5DgkxdASfWs31RlawGMxSBn5PyBmJBpo385zNC22uM6hWmoaZieR9HeC/vHNjMHiJl27TIFnwpZ99faZKG0s+hqtu3LCTd+/712JcUayNduBcrP/xBXJLWUZCpk7KyJTt5kcVdrO66uCD+y4orBrWn/3AZkxCpjA8C6kV81Z7FLO5/cko9UdlwgRUiki8Rb0i6Cci4jlNcOKPUoWW4aFCX3eXGldpW8YWC/5s3WevmRat0pqTqhtSma4tB6Z5z2aX5wsvxmsYD0fzHKtHN7QqcshcO9RrMMsNUBnCVV5zc6Bp6UPH76XQQZs29vW4s0EuJC1RNb8gbvh/HF5OsxM7IqUhOFcSa+A8N1eWsgLT375zhMOl0NqCPnLzm97MTTp+SRznjL6FTs3TgI6EH49RyXGkTIzA+yP0DSxgaWl87OFNHveGaCjINWhrBxM/AkcldJnKiJZfoO+PGMphPnle4pCftvkFOs8B6XVJ44rWjlH0s3K/ok="
+    skip_cleanup: true
+    skip_existing: true
+    on:
+      tags: true
+  - provider: releases
+    api_key: $GH_TOKEN
+    file: "manga_py_utils_${TRAVIS_TAG}.zip"
+    on:
+      tags: true

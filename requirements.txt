@@ -1,0 +1,8 @@
+lxml
+cssselect
+pycryptodome
+cloudscraper
+requests~=2.20
+packaging
+js2py
+tinycss2
