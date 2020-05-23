@@ -1,0 +1,35 @@
+checks:
+  python:
+    code_rating: true
+    duplicate_code: true
+  javascript: true
+
+build:
+  nodes:
+    analysis:
+      project_setup:
+        override: true
+      tests:
+        before:
+          - pip3 install coverage
+          - pip3 install -r requirements.txt
+        override:
+          -
+            command: 'coverage run --source=manga_py/utils run_tests.py'
+            coverage:
+              file: '.coverage'
+              format: 'py-cc'
+          - py-scrutinizer-run
+      environment:
+        python: 3.7.3
+        node: 6.0.0
+        apt_packages:
+          - dpkg
+filter:
+  excluded_paths:
+    - manga_py/crypt/sunday_webry_com.py
+    - manga_py/crypt/aes.js
+    - manga_py/crypt/aes_zp.js
+    - tests/*.py
+    - run_tests.py
+    - manga.py

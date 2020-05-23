@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from sys import platform
 
-from requests import get
+from requests import get, Session
 
 from manga_py.utils import sanitize_full_path, sanitize_filename
 from manga_py.utils.html_parser import HtmlParser
@@ -94,6 +94,12 @@ ________________________________________0.9.2""".replace('_', ' '), text_full)
             req.get(url).json()['headers']
         )
 
+        _h = f'{ua}/123'
+        self.assertEqual(
+            _h,
+            req.get(url, headers={'my-header': _h}, has_referer=False).json()['headers']['My-Header']
+        )
+
         req.ua = ua
 
         self.assertEqual(ua, req.ua)
@@ -101,7 +107,7 @@ ________________________________________0.9.2""".replace('_', ' '), text_full)
         with req.get(f'{heroku}/cookies') as r:
             cookies = r.json()['cookies']
 
-        self.assertEqual(req.cookies.get_dict(), cookies)
+        self.assertEqual(req.cookies, cookies)
         self.assertEqual({}, cookies)
 
         with req.get(f'{heroku}/cookies/set?manga-py=2.0') as r:
@@ -110,10 +116,63 @@ ________________________________________0.9.2""".replace('_', ' '), text_full)
         with req.get(f'{heroku}/cookies') as r:
             cookies = r.json()['cookies']
 
-        self.assertEqual(req.cookies.get_dict(), cookies)
+        self.assertEqual(req.cookies, cookies)
         self.assertEqual({
             'manga-py': '2.0'
         }, cookies)
 
+        old_session = req.session
+        new_session = Session()
+        req.session = new_session
 
-unittest.main()
+        self.assertNotEqual(old_session, req.session)
+        self.assertEqual(new_session, req.session)
+
+        old_headers = req.headers
+        new_ua = 'NewUserAgent'
+        new_headers = {
+            'usEr-aGeNt': new_ua
+        }
+        req.headers = new_headers
+
+        self.assertNotEqual(old_headers, req.headers)
+        self.assertEqual(new_headers, req.headers)
+
+        self.assertEqual(new_ua, req.get(f'{heroku}/get').json()['headers']['User-Agent'])
+
+        req.headers_update({'user-agent': ua})
+
+        self.assertEqual(ua, req.ua)
+
+        post = req.post(f'{heroku}/post', data={'my-data': ua})
+
+        self.assertEqual(ua, post.json()['form']['my-data'])
+
+        req.close()
+        self.assertRaises(RuntimeError, req.get, heroku)
+
+    def test_request_bad_session(self):
+        req = Request({})
+
+        req._session = {}
+
+        self.assertRaises(RuntimeError, lambda x: req.cookies, 0)
+
+        def assert_set_session():
+            req.session = {}
+
+        self.assertRaises(RuntimeError, assert_set_session)
+
+        req.close()
+
+        self.assertRaises(RuntimeError, lambda x: req.session, 0)
+
+    @staticmethod
+    def _cf_req():
+        req = Request({})
+        req.ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        return req
+
+
+if __name__ == '__main__':
+    unittest.main()
